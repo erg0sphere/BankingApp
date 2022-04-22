@@ -5,10 +5,11 @@
 #include <thread>         // std::this_thread::sleep_for
 #include <chrono>         // std::chrono::seconds
 #include <string>
+#include <iomanip>
 
 using std::cout; using std::cin;
 
-const int delay = 2;
+const int delay = 1;
 
 int getIntInput()                                      //Gets input from the console and converts it from a string into a interger.
 {
@@ -49,12 +50,12 @@ std::string g_username;
 std::string g_password;
 
 int g_accNum; //0-3
-std::string g_accUsernames[3];
+std::string g_accUsernames[3]; 
 std::string g_accPasswords[3];
 double g_balance[3];
-double g_history[3][10];
+double g_history[3][10]; //the first set of brakets represent the account number, the sencond set of brakets stores an array of the last 10 transactions.
 
-enum class Menus { mainMenu, login, createAcc, passwordReset, accOverview }; //enum stores all the different menus. Allows for easy switching between menus.
+enum class Menus { mainMenu, login, createAcc, passwordReset, accOverview, history }; //enum stores all the different menus. Allows for easy switching between menus.
 
 
 bool findAcc(std::string username)
@@ -67,6 +68,30 @@ bool findAcc(std::string username)
     }
     return false;
 }
+int findEmptyAcc() 
+{
+    for (int i = 0; i < 3; i++) {
+        if (g_accUsernames[i].empty()) {
+            return i;
+        }
+    }
+    return -1;
+}
+void logTransaction(bool type, double amount) // type signifies whether is a deposit or withdraw.
+{
+    if (type == 1) {
+        for (int i = 9; i > 0; i--) {
+            g_history[g_accNum][i] = g_history[g_accNum][i - 1];
+            g_history[g_accNum][0] = 0 - amount;
+        }
+    }
+    else if (type == 0) {
+        for (int i = 9; i > 0; i--) {
+            g_history[g_accNum][i] = g_history[g_accNum][i - 1];
+            g_history[g_accNum][0] = 0 - amount;
+        }
+    }
+}
 
 void displayUI(Menus menu) //Displays different menu-screens based on the selected menu.
 {
@@ -75,6 +100,7 @@ void displayUI(Menus menu) //Displays different menu-screens based on the select
             system("cls"); //Use system{"clear") for linux
             g_username.clear();
             g_password.clear();
+            g_accNum = -1;
 
             cout << "[1]Login\n";
             cout << "[2]Create Account\n";
@@ -105,20 +131,22 @@ void displayUI(Menus menu) //Displays different menu-screens based on the select
             break;
         case Menus::accOverview:
             system("cls");
+            cout << "Logged in to " << "\033[1;35m" << g_accUsernames[g_accNum] << "\033[0m\n";
+            cout << "Current balance: ";
+            cout << std::setprecision(2) << std::fixed << g_balance[g_accNum] << "\n";
 
-            cout << "Current balance: " << g_balance[g_accNum] << "\n";
-
-            cout << "[1]Deposit\n";
+            cout << "\n[1]Deposit\n";
             cout << "[2]Withdraw\n";
+            cout << "[3]History\n";
 
-            cout << "\n[3]Return to main screen\n";
+            cout << "\n[4]Return to main screen\n";
             break;
-
     }
 }
 
-Menus processInput(Menus menu, int selection) //Takes two args, currently selected menu and the user input, then it processes the what the user selected and switches to the next screen.
+Menus processInput(Menus menu, int selection) //Takes two args, currently selected menu and the user input, then it processes what the user selected based on the current menu and switches to the next screen.
 {
+    double amount;
     switch (menu) {
         case Menus::mainMenu:
             switch (selection) {
@@ -140,26 +168,84 @@ Menus processInput(Menus menu, int selection) //Takes two args, currently select
                     cout << "Enter your username\n";
                     getline(cin, g_username);
                     return Menus::login;
-                    break;
                 case 2:
                     cout << "Enter your password\n";
                     getline(cin, g_password);
                     return Menus::login;
                 case 3:
-                    if (findAcc(g_username)) {
-                        return Menus::accOverview;
+                    if (!g_username.empty() && !g_password.empty()) {
+                        if (findAcc(g_username) && g_password == g_accPasswords[g_accNum]) {
+                            cout << "\033[1;32mLogin successful\033[0m\n";
+                            std::this_thread::sleep_for(std::chrono::seconds(delay));
+                            return Menus::accOverview;
+                        }
+                        else {
+                            cout << "\033[1;31mUsername or password incorrect\033[0m\n";
+                            std::this_thread::sleep_for(std::chrono::seconds(delay));
+                            g_username.clear();
+                            g_password.clear();
+                            return Menus::login;
+                        }
                     }
                     else {
-                        cout << "\033[1;31mUsername does not exist\033[0m\n";
+                        cout << "\033[1;31mInput cannot be blank\033[0m\n";
                         std::this_thread::sleep_for(std::chrono::seconds(delay));
-                        g_username.clear();
-                        g_password.clear();
                         return Menus::login;
-                    }
+                    }   
+                case 4:
+                    return Menus::mainMenu;
                 default:
                     cout << "\033[1;31mChoose only from selection\033[0m\n";
                     std::this_thread::sleep_for(std::chrono::seconds(delay));
                     return Menus::login;
+            }
+            break;
+        case Menus::createAcc:
+            switch (selection) {
+                case 1:
+                    cout << "Enter a username\n";
+                    getline(cin, g_username);
+                    return Menus::createAcc;
+                case 2:
+                    cout << "Enter a password\n";
+                    getline(cin, g_password);
+                    return Menus::createAcc;
+                case 3:
+                    if (!g_password.empty() && !g_username.empty()) {
+                        if (!findAcc(g_username)) {
+                            int emptySpace = findEmptyAcc();
+                            if (emptySpace == -1) {
+                                cout << "\033[1;31mStorage full\033[0m\n";
+                                std::this_thread::sleep_for(std::chrono::seconds(delay));
+                                g_username.clear();
+                                g_password.clear();
+                                return Menus::mainMenu;
+                            }
+                            g_accUsernames[emptySpace] = g_username;
+                            g_accPasswords[emptySpace] = g_password;
+                            cout << "\033[1;32mAccount Created\033[0m\n";
+                            std::this_thread::sleep_for(std::chrono::seconds(delay));
+                            return Menus::mainMenu;
+                        }
+                        else {
+                            cout << "\033[1;31mUsername already exist\033[0m\n";
+                            std::this_thread::sleep_for(std::chrono::seconds(delay));
+                            g_username.clear();
+                            g_password.clear();
+                            return Menus::createAcc;
+                        }
+                    }
+                    else {
+                        cout << "\033[1;31mInput cannot be blank\033[0m\n";
+                        std::this_thread::sleep_for(std::chrono::seconds(delay));
+                        return Menus::createAcc;
+                    }
+                case 4:
+                    return Menus::mainMenu;
+                default:
+                    cout << "\033[1;31mChoose only from selection\033[0m\n";
+                    std::this_thread::sleep_for(std::chrono::seconds(delay));
+                    return Menus::createAcc;
             }
             break;
         case Menus::passwordReset:
@@ -168,11 +254,50 @@ Menus processInput(Menus menu, int selection) //Takes two args, currently select
         case Menus::accOverview:
             switch (selection) {
                 case 1:
-                    //
-                    return Menus::accOverview;    
+                    cout << "Enter amount: ";
+                    amount = getDouInput();
+                    if (amount != -1) {
+                        g_balance[g_accNum] = g_balance[g_accNum] + amount;
+
+                        logTransaction(1, amount);
+
+                        cout << "\033[1;32mAmmount added to balance\033[0m\n";
+                        std::this_thread::sleep_for(std::chrono::seconds(delay));
+                        return Menus::accOverview;
+                    }
+                    else {
+                        cout << "\033[1;31mEnter a number\033[0m\n";
+                        std::this_thread::sleep_for(std::chrono::seconds(delay));
+                        return Menus::accOverview;
+                    }
+                    
                 case 2:
-                    return Menus::accOverview;
+                    cout << "Enter amount: ";
+                    amount = getDouInput();
+                    if (amount != -1) {
+                        if (amount < g_balance[g_accNum]) {
+                            g_balance[g_accNum] = g_balance[g_accNum] - amount;
+
+                            logTransaction(0, amount);
+
+                            cout << "\033[1;32mAmmount subtracted to balance\033[0m\n";
+                            std::this_thread::sleep_for(std::chrono::seconds(delay));
+                            return Menus::accOverview;
+                        }  
+                        else {
+                            cout << "\033[1;31mNot enough money to withdraw\033[0m\n";
+                            std::this_thread::sleep_for(std::chrono::seconds(delay));
+                            return Menus::accOverview;
+                        }
+                    }
+                    else {
+                        cout << "\033[1;31mEnter a number\033[0m\n";
+                        std::this_thread::sleep_for(std::chrono::seconds(delay));
+                        return Menus::accOverview;
+                    }
                 case 3:
+                    return Menus::history;
+                case 4:
                     return Menus::mainMenu;
                 default:
                     cout << "\033[1;31mChoose only from selection\033[0m\n";
@@ -180,7 +305,9 @@ Menus processInput(Menus menu, int selection) //Takes two args, currently select
                     return Menus::mainMenu;
             }
             break;
+               
     }
+    return Menus::mainMenu;
 }
 
 int main()

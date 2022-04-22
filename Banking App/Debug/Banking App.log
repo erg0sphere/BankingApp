@@ -1,3 +1,2 @@
 ﻿  Banking App.cpp
-C:\Users\Daniel\source\repos\Banking App\Banking App\Banking App.cpp(186): warning C4715: 'processInput': not all control paths return a value
   Banking App.vcxproj -> C:\Users\Daniel\source\repos\Banking App\Debug\Banking App.exe
