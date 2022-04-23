@@ -42,7 +42,7 @@ double getDouInput()                                   //same as getIntInput(), 
         return inputAsDou;
     }
     catch (...) {
-        return -1;
+        return 0;
     }
 }
 
@@ -80,16 +80,16 @@ int findEmptyAcc()
 void logTransaction(bool type, double amount) // type signifies whether is a deposit or withdraw.
 {
     if (type == 1) {
-        for (int i = 9; i > 0; i--) {
-            g_history[g_accNum][i] = g_history[g_accNum][i - 1];
-            g_history[g_accNum][0] = 0 - amount;
+        for (int i = 9; i > 0; i--) { //This moves every element in the arrray up one space and assign the new ammount to index 0.
+            g_history[g_accNum][i] = g_history[g_accNum][i - 1];      
         }
+        g_history[g_accNum][0] = amount;
     }
     else if (type == 0) {
         for (int i = 9; i > 0; i--) {
-            g_history[g_accNum][i] = g_history[g_accNum][i - 1];
-            g_history[g_accNum][0] = 0 - amount;
+            g_history[g_accNum][i] = g_history[g_accNum][i - 1];         
         }
+        g_history[g_accNum][0] = 0 - amount;
     }
 }
 
@@ -127,7 +127,13 @@ void displayUI(Menus menu) //Displays different menu-screens based on the select
             cout << "\n[4]Return to main screen\n";
             break;
         case Menus::passwordReset:
-            cout << "wIP\n";
+            system("cls");
+
+            cout << "[1]Enter Username: " + g_username + "\n";
+            cout << "[2]Enter New Password: " + g_password + "\n";
+            cout << "\033[1;34m[3]Change Password\033[0m\n";
+
+            cout << "\n[4]Return to main screen\n";         
             break;
         case Menus::accOverview:
             system("cls");
@@ -140,6 +146,20 @@ void displayUI(Menus menu) //Displays different menu-screens based on the select
             cout << "[3]History\n";
 
             cout << "\n[4]Return to main screen\n";
+            break;
+        case Menus::history:
+            system("cls");
+
+            for (int i = 0; i < 10; i++) {
+                if (g_history[g_accNum][i] > 0) {
+                    cout << std::setprecision(2) << std::fixed << "\033[1;32m" << g_history[g_accNum][i] << "\033[0m\n";
+                }
+                if (g_history[g_accNum][i] < 0) {
+                    cout << std::setprecision(2) << std::fixed << "\033[1;31m" << g_history[g_accNum][i] << "\033[0m\n";
+                }
+            }
+
+            cout << "\n[1]Go back\n";
             break;
     }
 }
@@ -249,14 +269,51 @@ Menus processInput(Menus menu, int selection) //Takes two args, currently select
             }
             break;
         case Menus::passwordReset:
-            //WIP
+            switch (selection) {
+                case 1:
+                    cout << "Enter your username\n";
+                    getline(cin, g_username);
+                    return Menus::passwordReset;
+                case 2:
+                    cout << "Enter a new password\n";
+                    getline(cin, g_password);
+                    return Menus::passwordReset;
+                case 3:
+                    if (!g_username.empty() && !g_password.empty()) {
+                        if (findAcc(g_username)) {
+                            cout << "\033[1;32mPassword changed\033[0m\n";
+                            g_accPasswords[g_accNum] = g_password;
+                            std::this_thread::sleep_for(std::chrono::seconds(delay));
+                            return Menus::mainMenu;
+                        }
+                        else {
+                            cout << "\033[1;31mUsername does not exsit\033[0m\n";
+                            std::this_thread::sleep_for(std::chrono::seconds(delay));
+                            g_username.clear();
+                            //g_password.clear();
+                            return Menus::passwordReset;
+                        }
+                    }
+                    else {
+                        cout << "\033[1;31mInput cannot be blank\033[0m\n";
+                        std::this_thread::sleep_for(std::chrono::seconds(delay));
+                        return Menus::accOverview;
+                    }
+                case 4:
+                    return Menus::mainMenu;
+                default:
+                    cout << "\033[1;31mChoose only from selection\033[0m\n";
+                    std::this_thread::sleep_for(std::chrono::seconds(delay));
+                    return Menus::login;
+            }
+            break;
             break;
         case Menus::accOverview:
             switch (selection) {
                 case 1:
                     cout << "Enter amount: ";
                     amount = getDouInput();
-                    if (amount != -1) {
+                    if (amount != 0) {
                         g_balance[g_accNum] = g_balance[g_accNum] + amount;
 
                         logTransaction(1, amount);
@@ -274,8 +331,8 @@ Menus processInput(Menus menu, int selection) //Takes two args, currently select
                 case 2:
                     cout << "Enter amount: ";
                     amount = getDouInput();
-                    if (amount != -1) {
-                        if (amount < g_balance[g_accNum]) {
+                    if (amount != 0) {
+                        if (amount <= g_balance[g_accNum]) {
                             g_balance[g_accNum] = g_balance[g_accNum] - amount;
 
                             logTransaction(0, amount);
@@ -305,6 +362,16 @@ Menus processInput(Menus menu, int selection) //Takes two args, currently select
                     return Menus::mainMenu;
             }
             break;
+        case Menus::history:
+            switch (selection) {
+                case 1:
+                    return Menus::accOverview;
+                default:
+                    cout << "\033[1;31mChoose only from selection\033[0m\n";
+                    std::this_thread::sleep_for(std::chrono::seconds(delay));
+                    return Menus::history;
+            }
+            break;
                
     }
     return Menus::mainMenu;
@@ -312,10 +379,8 @@ Menus processInput(Menus menu, int selection) //Takes two args, currently select
 
 int main()
 {
-    //int currentMenu = 0;
     Menus displayMenu;
     displayMenu = Menus::mainMenu;
-  
  
     while (1) {
         displayUI(displayMenu);
@@ -326,8 +391,6 @@ int main()
         else {
             cout << "\033[1;31mEnter only interger\033[0m\n";
             std::this_thread::sleep_for(std::chrono::seconds(delay));
-        }
-        
-        
+        } 
     }    
 }
