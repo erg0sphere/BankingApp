@@ -1,2 +1,4 @@
 ﻿  Banking App.cpp
+C:\Users\Daniel\source\repos\Banking App\Banking App\Banking App.cpp(54,23): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Daniel\source\repos\Banking App\Banking App\Banking App.cpp(58,23): warning C4018: '<': signed/unsigned mismatch
   Banking App.vcxproj -> C:\Users\Daniel\source\repos\Banking App\Debug\Banking App.exe
